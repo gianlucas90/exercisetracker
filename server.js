@@ -51,6 +51,13 @@ const exerciseSchema = new Schema({
 const User = mongoose.model('User', userSchema);
 const Exercise = mongoose.model('Exercise', exerciseSchema);
 
+////////////////// Functions
+///////////////////////////
+const formatDate = (input) => {
+  const date = new Date(input);
+  return date.toDateString();
+};
+
 /////////////////// Views
 ///////////////////////////
 app.use(cors());
@@ -83,21 +90,11 @@ app.post('/api/exercise/add', async function (req, res) {
     let { userId, description, duration, date } = req.body;
     const user = await User.findById(userId);
     if (!user) return res.send('User not found!');
-    console.log(date);
-
     if (!date) {
-      milliseconds = Date.now();
-      date = new Date(milliseconds);
-      const year = date.getFullYear();
-      const month = date.getMonth();
-      const num = date.getDate();
-      const day = date.getDay();
-      date = `${year}-${month}-${num}`;
+      date = formatDate(Date.now());
+    } else {
+      date = formatDate(date);
     }
-
-    console.log(date);
-    // console.log(date);
-
     const newExercise = await Exercise.create({
       username: user.username,
       date,
