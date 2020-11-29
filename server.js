@@ -29,26 +29,21 @@ const userSchema = new Schema({
 });
 
 const exerciseSchema = new Schema({
-  userId: String,
+  username: {
+    type: String,
+    required: true,
+  },
   description: {
     type: String,
     required: true,
   },
-  durations: {
+  duration: {
     type: Number,
     required: true,
   },
   date: {
-    type: String,
+    type: Date,
   },
-});
-
-userSchema.pre(/^find/, function (next) {
-  this.populate({
-    path: 'guides',
-    select: '-__v -passwordChangedAt',
-  });
-  next();
 });
 
 /////////////////// Models
@@ -65,6 +60,8 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/views/index.html');
 });
 
+////////////////// Handlers
+///////////////////////////
 app.post('/api/exercise/new-user', async function (req, res) {
   try {
     const username = req.body.username;
@@ -78,6 +75,47 @@ app.post('/api/exercise/new-user', async function (req, res) {
   } catch (error) {
     console.error(error);
   }
+});
+
+app.post('/api/exercise/add', async function (req, res) {
+  try {
+    const { userId, description, duration, date } = req.body;
+    const user = await User.findById(userId, function (err, user) {
+      if (user) return user;
+    });
+    if (!user) return res.send('User not found!');
+    console.log(user);
+    const newExercise = await Exercise.create({
+      username: user.username,
+      date,
+      duration,
+      description,
+    });
+    res.json(newExercise);
+  } catch (error) {
+    console.error(error);
+  }
+});
+
+app.get('/api/exercise/log', async (req, res) => {
+  const { userId, from, to, limit } = req.query;
+  const { username } = await User.findById({ _id: userId });
+
+  const query = { username };
+  if (from && !to) query.date = { $gte: from };
+  if (!from && to) query.date = { $lte: to };
+  if (from && to) query.date = { $gte: from, $lte: to };
+
+  const exResults = await Exercise.find(query)
+    .select('-_id -username -__v')
+    .limit(limit * 1)
+    .sort('date');
+  res.json({
+    _id: userId,
+    username,
+    count: exResults.length,
+    log: exResults,
+  });
 });
 
 const listener = app.listen(process.env.PORT || 3000, () => {
