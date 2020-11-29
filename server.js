@@ -79,12 +79,12 @@ app.post('/api/exercise/new-user', async function (req, res) {
 
 app.post('/api/exercise/add', async function (req, res) {
   try {
-    const { userId, description, duration, date } = req.body;
+    let { userId, description, duration, date } = req.body;
     const user = await User.findById(userId, function (err, user) {
       if (user) return user;
     });
     if (!user) return res.send('User not found!');
-    console.log(user);
+    if (!date) date = Date.now();
     const newExercise = await Exercise.create({
       username: user.username,
       date,
@@ -95,6 +95,12 @@ app.post('/api/exercise/add', async function (req, res) {
   } catch (error) {
     console.error(error);
   }
+});
+
+app.get('/api/exercise/users/', async function (req, res) {
+  const users = await User.find().select('-__v');
+  if (!users) res.send('No users found.');
+  res.json(users);
 });
 
 app.get('/api/exercise/log', async (req, res) => {
